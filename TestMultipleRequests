@@ -1,0 +1,77 @@
+package com.vega.simple.assertion.test;
+
+import static org.junit.Assert.*;
+
+import org.activiti.engine.RepositoryService;
+import org.activiti.engine.RuntimeService;
+import org.activiti.engine.runtime.ProcessInstance;
+import org.apache.log4j.PropertyConfigurator;
+import org.junit.Test;
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+
+public class TestMultipleRequests {
+	private static AbstractApplicationContext mApplicationContext;
+	static RuntimeService mRuntimeService;
+
+	
+	@Test
+	public void testMultipleRequests(){
+		try {
+			PropertyConfigurator.configure("log4j.properties");
+			TestMultipleRequests testSampleMain = new TestMultipleRequests();
+			testSampleMain.initialize();
+			RepositoryService repositoryService = mApplicationContext
+					.getBean(RepositoryService.class);
+			mRuntimeService = mApplicationContext.getBean(RuntimeService.class);
+
+			// AsyncMainProcess
+			repositoryService.createDeployment()
+					.addClasspathResource("SimpleMainProcess.bpmn20.xml")
+					.deploy();
+			// AsyncSubProcess
+			repositoryService.createDeployment()
+					.addClasspathResource("SimpleSubProcess.bpmn20.xml")
+					.deploy();
+
+			//I need to run the  process  (count=10000) 'N' number of times..
+			//If I keep on increment the count  value the process gets stopped in  middle of count.
+			// I want to run the process Spontaneously without halt. 
+			for(int count=1;count<=1000;count++){
+				System.out.println("count :" + count);
+
+				ProcessInstance processInstance = null;
+				try {
+					processInstance = mRuntimeService
+							.startProcessInstanceByKey("SimpleMainProcess");
+
+				} catch (Exception e) {
+					e.printStackTrace();
+
+				}
+				
+				Thread.sleep(1000);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+
+		} finally {
+			mApplicationContext = null;
+		}
+	}
+
+	private void initialize() {
+		try {
+			mApplicationContext = new ClassPathXmlApplicationContext(
+					"applicationContext.xml");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+		
+		
+}
